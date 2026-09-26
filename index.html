@@ -40,6 +40,7 @@ html,body{margin:0;height:100%;background:var(--plum);color:var(--ink);font-fami
 .rv{opacity:0}
 .active .rv{animation:rv .95s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(.14s * var(--i,0) + .2s)}
 @keyframes rv{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+.active .rv.shown{animation:none;opacity:1;transform:none}
 
 h1,h2{font-family:var(--serif);font-weight:400;margin:0;letter-spacing:.02em;text-wrap:balance}
 h1{font-size:clamp(36px,10.5vw,48px);line-height:1.15}
@@ -388,7 +389,9 @@ app.querySelectorAll('.polaroid img').forEach(img => {
 
 /* ---------- navigation ---------- */
 const COVER = 0, INTRO = 1, FIRST_CH = 2, LAST_CH = 1 + STORY.chapters.length, QUESTION = LAST_CH + 1, YES = QUESTION + 1;
-let cur = -1;
+let cur = -1, revealTimer = 0;
+const revealAll = s => s.querySelectorAll('.rv').forEach(el => el.classList.add('shown'));
+document.addEventListener('visibilitychange', () => { if (!document.hidden && cur >= 0) revealAll(screens[cur]); });
 
 const navScreens = [];
 for (let i = INTRO; i <= LAST_CH; i++) navScreens.push(i);
@@ -397,11 +400,17 @@ navScreens.forEach(() => { const d = document.createElement('i'); d.className = 
 function go(i) {
   if (i === cur || i < 0 || i >= screens.length) return;
   const prev = screens[cur];
-  if (prev) { prev.classList.remove('active'); prev.classList.add('leaving'); setTimeout(() => prev.classList.remove('leaving'), 800); }
+  if (prev) {
+    prev.classList.remove('active'); prev.classList.add('leaving');
+    prev.querySelectorAll('.rv').forEach(el => el.classList.remove('shown'));
+    setTimeout(() => prev.classList.remove('leaving'), 800);
+  }
   cur = i;
   const s = screens[i];
   s.scrollTop = 0;
   s.classList.add('active');
+  clearTimeout(revealTimer);
+  revealTimer = setTimeout(() => revealAll(s), 2200);   // 保险：动画若被系统暂停，2.2 秒后直接显示
 
   const showNav = i >= INTRO && i <= LAST_CH;
   nav.classList.toggle('show', showNav);
